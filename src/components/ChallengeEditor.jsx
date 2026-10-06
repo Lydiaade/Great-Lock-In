@@ -135,7 +135,9 @@ export default function ChallengeEditor({ initial, isNew, onSave, onCancel }) {
                 <input className="gli-input short" value={d.currency} maxLength={3} onChange={(e) => update((n) => { n.currency = e.target.value })} />
               </Field>
               <div className="gli-hint">Each habit group below earns its amount on days when all its habits are done.</div>
-              <MaxPrize c={d} b={prize} />
+              {prize
+                ? <MaxPrize c={d} b={prize} />
+                : <div className="gli-hint">Enter a start date and a length (1–366 days) to see the total that can be won.</div>}
             </>
           ) : (
             <>
