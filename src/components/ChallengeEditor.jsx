@@ -219,7 +219,7 @@ export default function ChallengeEditor({ initial, isNew, onSave, onCancel }) {
             </div>
           ))}
           <button className="gli-addbtn" onClick={() => update((n) => {
-            n.restDays.holidays.push({ start: n.startDate, end: n.startDate, label: '' })
+            n.restDays.holidays.push({ start: '', end: '', label: '' })
           })}>+ Add holiday</button>
           {added > 0 && <div className="gli-hint">Holidays add {added} day{added === 1 ? '' : 's'} — the challenge now ends {fmtShort(endDate(saved))}.</div>}
         </div>
@@ -342,11 +342,12 @@ function HabitEditor({ h, onChange, onRemove }) {
 function TierEditor({ tiers, currency, unit, onChange }) {
   return (
     <div className="gli-tiers">
+      <div className="gli-hint">Bonus for reaching this many {unit}:</div>
       {tiers.map((t, i) => (
         <div className="gli-tier" key={i}>
           <input className="gli-input short" type="number" inputMode="numeric" min="0" value={t.minDays}
                  onChange={(e) => onChange((ts) => { ts[i].minDays = e.target.value })} />
-          <span>+ {unit} →</span>
+          <span>+ days →</span>
           <span className="gli-money-input">
             {currency}
             <input className="gli-input short" type="number" inputMode="decimal" min="0" value={t.amount}

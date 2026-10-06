@@ -270,8 +270,8 @@
 .gli-addbtn { background:none; border:none; color: var(--green); font-family:inherit; font-size:12.5px; font-weight:600; padding:6px 0; cursor:pointer; }
 .gli-addbtn.outline { display:block; width:100%; border:1px dashed var(--line); border-radius:12px; padding:10px; margin-bottom:10px; }
 .gli-tiers { margin-top:6px; }
-.gli-tier { display:flex; align-items:center; gap:6px; font-size:11.5px; color: var(--ink-dim); margin-bottom:6px; flex-wrap:wrap; }
-.gli-tier > span:not(.gli-money-input) { flex:1; min-width:90px; }
+.gli-tier { display:flex; align-items:center; gap:6px; font-size:12px; color: var(--ink-dim); margin-bottom:6px; }
+.gli-tier > span:not(.gli-money-input) { flex:1; white-space:nowrap; }
 
 /* REST DAYS & HOLIDAYS */
 .gli-offbanner { display:flex; gap:12px; align-items:center; background: var(--blue-dim); border:1px solid var(--blue); border-radius:14px; padding:11px 14px; margin-bottom:12px; }
@@ -328,3 +328,26 @@
 .gli-guide-dot.full { background: var(--green); }
 .gli-guide-dot.part { background: var(--gold); }
 .gli-guide-dot.off { background: var(--blue); }
+
+/* MOBILE / iOS SAFARI
+   - Inputs under 16px make iOS zoom the page on focus (and often stay zoomed).
+   - iOS date inputs have an intrinsic width and centred value; reset them so they
+     fill their column like the other fields.
+   - Grid/flex children default to min-width:auto and won't shrink below their content. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+.gli-input, .gli-notes, .gli-field input, .gli-bodynotes, select.gli-input { max-width:100%; }
+.gli-2col > *, .gli-fieldgrid > *, .gli-grouphead > *, .gli-habitedit .row > * { min-width:0; }
+input[type="date"].gli-input {
+  -webkit-appearance:none; appearance:none; display:block; width:100%; min-width:0;
+  min-height:38px; line-height:1.2; text-align:left;
+}
+input[type="date"].gli-input.small { min-height:34px; }
+input[type="date"]::-webkit-date-and-time-value { text-align:left; margin:0; }
+input[type="number"].gli-input { -moz-appearance:textfield; }
+input[type="number"].gli-input::-webkit-inner-spin-button,
+input[type="number"].gli-input::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+@supports (-webkit-touch-callout: none) {
+  /* iOS only: 16px stops focus-zoom. */
+  .gli-input, .gli-input.small, .gli-notes, .gli-field input, .gli-bodynotes, select { font-size:16px; }
+  .gli-input.short { width:64px; padding-left:8px; padding-right:8px; }
+}
