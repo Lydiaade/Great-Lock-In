@@ -1,54 +1,109 @@
-import { challengeStats } from '../challenge'
+import { challengeStats, streakStats, endBonusRows, money } from '../challenge'
 
-export default function TotalsView({ getDay, resetAll }) {
-  const s = challengeStats(getDay)
-  const tiers = [[26, 28, 100], [23, 25, 70], [20, 22, 40], [0, 19, 0]]
+export default function TotalsView({ c, getDay }) {
+  return c.rewardMode === 'money' ? <MoneyTotals c={c} getDay={getDay} /> : <StreakTotals c={c} getDay={getDay} />
+}
+
+function MoneyTotals({ c, getDay }) {
+  const s = challengeStats(c, getDay)
+  const rows = endBonusRows(c)
+  const hitIdx = rows.findIndex((r) => s.totalQualifying >= r.min)
 
   return (
     <>
       <div className="gli-label">Week by week</div>
-      <table className="gli-table">
-        <thead>
-          <tr><th>Week</th><th>Qual.</th><th>Daily £</th><th>Bonus £</th><th>Subtotal</th></tr>
-        </thead>
-        <tbody>
-          {s.weeks.map((w, i) => (
-            <tr key={i}>
-              <td>Week {i + 1}</td><td>{w.qualifying}/7</td><td>£{w.dailySum}</td><td>£{w.bonus}</td><td>£{w.subtotal}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <div className="gli-label">End-of-challenge bonus</div>
-      <div className="gli-bonuscard">
-        {tiers.map((t, i) => {
-          const label = t[2] === 0 ? 'Under 20 days' : `${t[0]}–${t[1]} days`
-          const hit = s.endBonus === t[2] && (t[2] !== 0 ? s.totalQualifying >= t[0] : s.totalQualifying < 20)
-          return (
-            <div className={'row' + (hit ? ' hit' : '')} key={i}>
-              <span>{label}</span><span>{t[2] ? `+£${t[2]}` : '£0'}</span>
-            </div>
-          )
-        })}
+      <div className="gli-tablewrap">
+        <table className="gli-table">
+          <thead>
+            <tr><th>Week</th><th>Qual.</th><th>Daily</th><th>Bonus</th><th>Subtotal</th></tr>
+          </thead>
+          <tbody>
+            {s.weeks.map((w, i) => (
+              <tr key={i}>
+                <td>Week {i + 1}</td><td>{w.qualifying}/{w.dates.length}</td><td>{money(c, w.dailySum)}</td>
+                <td>{money(c, w.bonus)}</td><td>{money(c, w.subtotal)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
+      {c.endBonus.enabled && rows.length > 0 && (
+        <>
+          <div className="gli-label">End-of-challenge bonus</div>
+          <div className="gli-bonuscard">
+            {rows.map((r, i) => (
+              <div className={'row' + (i === hitIdx ? ' hit' : '')} key={i}>
+                <span>{r.label}</span><span>{r.amount ? `+${money(c, r.amount)}` : money(c, 0)}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
       <div className="gli-bonuscard">
-        <div className="row"><span>Qualifying days</span><span>{s.totalQualifying} / 28</span></div>
-        <div className="row hit"><span>Grand total</span><span className="gli-mono">£{s.grand} / £500</span></div>
+        <div className="row"><span>Qualifying days</span><span>{s.totalQualifying} / {c.lengthDays}</span></div>
+        <div className="row hit"><span>Grand total</span><span className="gli-mono">{money(c, s.grand)} / {money(c, s.max)}</span></div>
       </div>
 
       <div className="gli-note">
-        <b>One judgment call:</b> a &ldquo;qualifying day&rdquo; here means a full £10 day
-        (logging + all Tier 1 + all Tier 2 hit), and the £5 weekly floor kicks in just from
-        logging all 7 days — £20/£30 are extra tiers on top. The tracker sheet doesn&rsquo;t
-        spell either out beyond &ldquo;full detail in the Reward System document,&rdquo; so if
-        that document defines things differently, tell me and I&rsquo;ll adjust the math.
+        A <b>qualifying day</b> means every habit group was completed that day.
+        {c.weeklyBonus.enabled && (
+          <> The weekly bonus applies to full 7-day weeks
+            {c.weeklyBonus.gateGroupId ? <> where &ldquo;{c.groups.find((g) => g.id === c.weeklyBonus.gateGroupId)?.name}&rdquo; was done every day</> : null}.</>
+        )}
+      </div>
+    </>
+  )
+}
+
+function StreakTotals({ c, getDay }) {
+  const s = streakStats(c, getDay)
+  const need = Math.max(0, s.target - s.completed)
+
+  return (
+    <>
+      <div className="gli-statgrid">
+        <div className="gli-stat">
+          <div className="l">Current streak</div>
+          <div className="v" style={{ color: 'var(--green)' }}>{s.current} {s.current === 1 ? 'day' : 'days'}</div>
+        </div>
+        <div className="gli-stat">
+          <div className="l">Best streak</div>
+          <div className="v">{s.best} {s.best === 1 ? 'day' : 'days'}</div>
+        </div>
+        <div className="gli-stat">
+          <div className="l">Days complete</div>
+          <div className="v">{s.completed} / {c.lengthDays}</div>
+        </div>
+        <div className="gli-stat">
+          <div className="l">Days left</div>
+          <div className="v">{s.daysLeft}</div>
+        </div>
       </div>
 
-      <button className="gli-reset" onClick={() => {
-        if (window.confirm('This clears every logged day and body measurement. Continue?')) resetAll()
-      }}>Reset all tracked data</button>
+      <div className="gli-label">The prize</div>
+      <div className={'gli-prize' + (s.unlocked ? ' unlocked' : '')}>
+        <div className="icon" aria-hidden="true">{s.unlocked ? '🏆' : '🎁'}</div>
+        <div>
+          <div className="t">{c.streak.prize || 'No prize set yet'}</div>
+          <div className="s">
+            {s.unlocked
+              ? `Unlocked — you completed ${s.completed} days!`
+              : !s.stillPossible
+                ? `Out of reach this time: ${need} more days needed, ${s.daysLeft} left`
+                : `Complete ${s.target} days to unlock · ${need} to go`}
+          </div>
+        </div>
+      </div>
+      <div className="gli-progress lg">
+        <div className="gli-progress-fill" style={{ width: Math.min(100, (s.completed / s.target) * 100) + '%' }} />
+      </div>
+
+      <div className="gli-note">
+        A day counts as <b>complete</b> when every habit is ticked. Today stays &ldquo;in progress&rdquo; and
+        won&rsquo;t break your current streak until it&rsquo;s over.
+      </div>
     </>
   )
 }

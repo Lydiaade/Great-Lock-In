@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { emptyDay } from './challenge'
+import { useRef, useState, useCallback } from 'react'
+import { daysKey, bodyKey } from './useChallenges'
 
-const DAYS_KEY = 'gli:days'
-const BODY_KEY = 'gli:body'
+const EMPTY_DAY = Object.freeze({})
 
 function loadJSON(key, fallback) {
   try {
@@ -14,67 +13,47 @@ function loadJSON(key, fallback) {
   }
 }
 
-export function useTrackerData() {
-  const [days, setDays] = useState(() => loadJSON(DAYS_KEY, {}))
-  const [body, setBody] = useState(() => loadJSON(BODY_KEY, {}))
+// Day and body data for one challenge. Mount with `key={challengeId}` so switching
+// challenges reloads from storage.
+export function useTrackerData(challengeId) {
+  const [data, setData] = useState(() => ({
+    days: loadJSON(daysKey(challengeId), {}),
+    body: loadJSON(bodyKey(challengeId), {}),
+  }))
   const [saveState, setSaveState] = useState('saved')
-  const saveTimer = useRef(null)
+  const latest = useRef(data)
 
-  const persist = useCallback((nextDays, nextBody) => {
-    setSaveState('saving')
-    clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => {
-      try {
-        localStorage.setItem(DAYS_KEY, JSON.stringify(nextDays))
-        localStorage.setItem(BODY_KEY, JSON.stringify(nextBody))
-        setSaveState('saved')
-      } catch (e) {
-        console.error('Save failed', e)
-        setSaveState('error')
-      }
-    }, 300)
-  }, [])
-
-  const getDay = useCallback((dateStr) => days[dateStr] || emptyDay(), [days])
-
-  const toggleDayField = useCallback((dateStr, key) => {
-    setDays((prev) => {
-      const current = prev[dateStr] || emptyDay()
-      const next = { ...prev, [dateStr]: { ...current, [key]: !current[key] } }
-      persist(next, body)
-      return next
-    })
-  }, [body, persist])
-
-  const setDayNotes = useCallback((dateStr, notes) => {
-    setDays((prev) => {
-      const current = prev[dateStr] || emptyDay()
-      const next = { ...prev, [dateStr]: { ...current, notes } }
-      persist(next, body)
-      return next
-    })
-  }, [body, persist])
-
-  const setBodyField = useCallback((checkpointKey, field, value) => {
-    setBody((prev) => {
-      const current = prev[checkpointKey] || {}
-      const next = { ...prev, [checkpointKey]: { ...current, [field]: value } }
-      persist(days, next)
-      return next
-    })
-  }, [days, persist])
-
-  const resetAll = useCallback(() => {
-    setDays({})
-    setBody({})
+  const commit = useCallback((fn) => {
+    const next = fn(latest.current)
+    latest.current = next
+    setData(next)
     try {
-      localStorage.removeItem(DAYS_KEY)
-      localStorage.removeItem(BODY_KEY)
+      localStorage.setItem(daysKey(challengeId), JSON.stringify(next.days))
+      localStorage.setItem(bodyKey(challengeId), JSON.stringify(next.body))
       setSaveState('saved')
     } catch (e) {
-      console.error(e)
+      console.error('Save failed', e)
+      setSaveState('error')
     }
-  }, [])
+  }, [challengeId])
 
-  return { days, body, getDay, toggleDayField, setDayNotes, setBodyField, resetAll, saveState }
+  const { days, body } = data
+  const getDay = useCallback((dateStr) => days[dateStr] || EMPTY_DAY, [days])
+
+  const toggleDayField = useCallback((dateStr, key) => commit(({ days, body }) => {
+    const current = days[dateStr] || {}
+    return { body, days: { ...days, [dateStr]: { ...current, [key]: !current[key] } } }
+  }), [commit])
+
+  const setDayNotes = useCallback((dateStr, notes) => commit(({ days, body }) => (
+    { body, days: { ...days, [dateStr]: { ...(days[dateStr] || {}), notes } } }
+  )), [commit])
+
+  const setBodyField = useCallback((checkpointKey, field, value) => commit(({ days, body }) => (
+    { days, body: { ...body, [checkpointKey]: { ...(body[checkpointKey] || {}), [field]: value } } }
+  )), [commit])
+
+  const resetAll = useCallback(() => commit(() => ({ days: {}, body: {} })), [commit])
+
+  return { body, getDay, toggleDayField, setDayNotes, setBodyField, resetAll, saveState }
 }

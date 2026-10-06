@@ -11,7 +11,7 @@ export default defineConfig({
       manifest: {
         name: 'The Great Lock In',
         short_name: 'Lock In',
-        description: '4-week challenge progress tracker — 7 Sept to 4 Oct 2026',
+        description: 'Daily habit challenge tracker — money rewards or streaks',
         start_url: '/',
         display: 'standalone',
         background_color: '#101613',

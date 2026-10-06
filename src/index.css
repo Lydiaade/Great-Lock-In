@@ -3,7 +3,7 @@
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
 body {
-  background: #101613;
+  background: var(--bg);
   font-family: 'Space Grotesk', -apple-system, sans-serif;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
