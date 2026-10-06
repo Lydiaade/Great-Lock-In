@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { fmtShort, toDate, DOWS, restCfg, maxRewardBreakdown, money, endDate, holidayDaysAdded } from '../challenge'
+import { fmtShort, toDate, restCfg, maxRewardBreakdown, money, endDate, holidayDaysAdded } from '../challenge'
 import { newId } from '../presets'
 
 // The editor works on a "draft": numbers kept as strings and weekly targets as a raw
@@ -15,8 +15,8 @@ function toDraft(c) {
     weeklyBonus: { ...c.weeklyBonus, tiers: tiers(c.weeklyBonus.tiers) },
     endBonus: { ...c.endBonus, tiers: tiers(c.endBonus.tiers) },
     streak: { ...c.streak, targetDays: String(c.streak.targetDays) },
-    restDays: (({ weekdays, flexTotal, holidays }) => ({
-      weekdays, flexTotal: String(flexTotal), holidays: holidays.map((h) => ({ ...h, label: h.label || '' })),
+    restDays: (({ flexTotal, holidays }) => ({
+      flexTotal: String(flexTotal), holidays: holidays.map((h) => ({ ...h, label: h.label || '' })),
     }))(restCfg(c)),
   }
 }
@@ -48,7 +48,6 @@ function fromDraft(d) {
     endBonus: { ...d.endBonus, tiers: tiers(d.endBonus.tiers) },
     streak: { prize: d.streak.prize.trim(), targetDays: Math.min(Math.round(num(d.streak.targetDays)) || lengthDays, lengthDays) },
     restDays: {
-      weekdays: [...d.restDays.weekdays].sort(),
       flexTotal: Math.min(lengthDays, Math.round(num(d.restDays.flexTotal))),
       holidays: d.restDays.holidays
         .filter((h) => h.start)
@@ -65,7 +64,6 @@ function validate(c) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(c.startDate) || isNaN(toDate(c.startDate))) return 'Pick a start date.'
   if (c.lengthDays < 1 || c.lengthDays > 366) return 'Length must be between 1 and 366 days.'
   if (!c.groups.length) return 'Add at least one habit.'
-  if (c.restDays.weekdays.length >= 7) return 'At least one day a week needs to be a challenge day.'
   return ''
 }
 
@@ -194,21 +192,7 @@ export default function ChallengeEditor({ initial, isNew, onSave, onCancel }) {
           {' '}<b>Holidays</b> pause the challenge — the end date moves back and you carry on as if nothing happened.
         </div>
         <div className="gli-card">
-          <Field label="Fixed rest days every week">
-            <div className="gli-daychips">
-              {[1, 2, 3, 4, 5, 6, 0].map((wd) => {
-                const on = d.restDays.weekdays.includes(wd)
-                return (
-                  <button key={wd} type="button" className={on ? 'active' : ''} aria-pressed={on}
-                          onClick={() => update((n) => {
-                            const w = n.restDays.weekdays
-                            n.restDays.weekdays = on ? w.filter((x) => x !== wd) : [...w, wd]
-                          })}>{DOWS[wd]}</button>
-                )
-              })}
-            </div>
-          </Field>
-          <Field label="Flexible rest days for the whole challenge (use them on any day, from the Today screen)">
+          <Field label="Rest days for the whole challenge (use them on any day, from the Today screen)">
             <input className="gli-input short" type="number" inputMode="numeric" min="0" value={d.restDays.flexTotal}
                    onChange={(e) => update((n) => { n.restDays.flexTotal = e.target.value })} />
           </Field>

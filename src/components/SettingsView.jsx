@@ -21,13 +21,18 @@ export function TemplatePicker({ onPick }) {
   ))
 }
 
-export default function SettingsView({ challenges, active, setActive, onEdit, onNew, deleteChallenge, resetAll, themePref, setThemePref }) {
+export default function SettingsView({ challenges, active, setActive, onEdit, onNew, deleteChallenge, resetAll, themePref, setThemePref, openGuide }) {
   const [picking, setPicking] = useState(false)
   // Inline two-step confirms: { kind: 'delete' | 'reset', id }
   const [confirm, setConfirm] = useState(null)
 
   return (
     <>
+      <button className="gli-chcard pick gli-guidecard" onClick={openGuide}>
+        <div className="t">❓ How it works</div>
+        <div className="s">Rewards, streaks, rest days and holidays explained for this challenge</div>
+      </button>
+
       <div className="gli-label">Appearance</div>
       <ThemePicker pref={themePref} setPref={setThemePref} />
 

@@ -106,8 +106,8 @@ export function countedHabits(c) {
 
 // ---------- Rest days & holidays ----------
 // Holidays aren't challenge days at all (see challengeDates). A challenge day is a rest
-// day when it falls on a fixed rest weekday, or the user marked it as a flexible rest day
-// (day field `_rest`, limited to `flexTotal` across the whole challenge). Rest is paid: a rest day is
+// day when the user marked it as one (day field `_rest`), limited to `flexTotal` across
+// the whole challenge. Rest is paid: a rest day is
 // scored as if every habit was done (effectiveDay) — full daily amount, qualifying, and
 // it keeps the streak going. Resting as planned never costs anything.
 export const REST_FIELD = '_rest'
@@ -116,39 +116,35 @@ export function restCfg(c) {
   const r = c.restDays || {}
   // Older configs stored a per-week allowance; convert it to a challenge-wide total.
   const flexTotal = r.flexTotal != null ? Number(r.flexTotal) || 0 : (Number(r.perWeek) || 0) * weekCount(c)
-  return { weekdays: r.weekdays || [], flexTotal, holidays: r.holidays || [] }
+  return { flexTotal, holidays: r.holidays || [] }
 }
 
 export function holidayOn(c, dateStr) {
   return restCfg(c).holidays.find((h) => dateStr >= h.start && dateStr <= (h.end || h.start)) || null
 }
 
-// Fixed rest days — known in advance, no day data needed.
-export function plannedOff(c, dateStr) {
-  if (restCfg(c).weekdays.includes(toDate(dateStr).getDay())) return { kind: 'rest', label: 'Rest day' }
-  return null
-}
-
-// Rest status for every challenge date. Flexible rest days only count up to the
-// challenge-wide allowance (earliest first), so lowering it later can't over-credit.
+// Rest status for every challenge date. Rest days only count up to the challenge-wide
+// allowance (earliest first), so lowering it later can't over-credit.
 export function restInfo(c, getDay) {
   const { flexTotal } = restCfg(c)
   const map = new Map()
   let flexUsed = 0
   challengeDates(c).forEach((dt) => {
-    const planned = plannedOff(c, dt)
-    if (planned) map.set(dt, planned)
-    else if (getDay(dt)[REST_FIELD] && flexUsed < flexTotal) {
+    if (getDay(dt)[REST_FIELD] && flexUsed < flexTotal) {
       flexUsed++
-      map.set(dt, { kind: 'rest', label: 'Rest day', flexible: true })
+      map.set(dt, { kind: 'rest', label: 'Rest day' })
     }
   })
   return { map, flexTotal, flexUsed, flexLeft: Math.max(0, flexTotal - flexUsed) }
 }
 
-// The day's data as scored: a rest day counts as every habit done.
-export function effectiveDay(c, d, isRest) {
-  if (!isRest) return d
+// The day's data as scored: a rest day counts as every habit done — but only once its
+// date has arrived, so upcoming rest days aren't paid out in advance.
+export function restCredited(isRest, dateStr) {
+  return !!isRest && dateStr <= todayISO()
+}
+export function effectiveDay(c, d, isRest, dateStr) {
+  if (!restCredited(isRest, dateStr)) return d
   const e = { ...d }
   countedHabits(c).forEach((h) => { e[h.id] = true })
   return e
@@ -191,7 +187,7 @@ export function weekStats(c, weekIdx, getDay) {
   dates.forEach((dt) => {
     const isOff = off.has(dt)
     if (isOff) offDays++
-    const d = effectiveDay(c, getDay(dt), isOff)
+    const d = effectiveDay(c, getDay(dt), isOff, dt)
     if (gate && !groupDone(gate, d)) gateAll = false
     if (dayIsFull(c, d)) qualifying++
     dailySum += dayTotal(c, d)
@@ -246,7 +242,7 @@ export function streakStats(c, getDay) {
   const lastIdx = Math.min(todayIdx, dates.length - 1)
   const offs = restInfo(c, getDay).map
   // Rest days are scored as full days (see effectiveDay).
-  const full = dates.map((dt) => dayIsFull(c, effectiveDay(c, getDay(dt), offs.has(dt))))
+  const full = dates.map((dt) => dayIsFull(c, effectiveDay(c, getDay(dt), offs.has(dt), dt)))
 
   let completed = 0, best = 0, run = 0
   for (let i = 0; i <= lastIdx; i++) {

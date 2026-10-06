@@ -23,7 +23,7 @@ export default function WeekView({ c, weekIdx, setWeekIdx, getDay }) {
         {w.dates.map((dt, i) => {
           const gap = holidayBefore(c, weekIdx * 7 + i)
           const o = off.get(dt)
-          const d = effectiveDay(c, getDay(dt), !!o)
+          const d = effectiveDay(c, getDay(dt), !!o, dt)
           const { done, total } = habitsDone(c, d)
           const full = dayIsFull(c, d)
           const dotClass = full ? 'full' : done > 0 ? 'part' : ''

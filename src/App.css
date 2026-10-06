@@ -285,9 +285,6 @@
 .gli-restrow.on .gli-switch .knob { background: var(--blue); }
 .gli-daymini .dot.off { background: var(--blue); }
 .gli-offtag { font-size:10.5px; color: var(--blue); background: var(--blue-dim); border-radius:6px; padding:2px 7px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; }
-.gli-daychips { display:flex; gap:4px; flex-wrap:wrap; }
-.gli-daychips button { flex:1 0 38px; padding:7px 0; border-radius:8px; border:1px solid var(--line); background: var(--card-alt); color: var(--ink-dim); font-family:inherit; font-size:12px; font-weight:600; cursor:pointer; }
-.gli-daychips button.active { background: var(--blue-dim); border-color: var(--blue); color: var(--ink); }
 .gli-2col.tight { gap:6px; margin-top:4px; }
 .gli-2col.tight .gli-formfield { margin-bottom:0; }
 
@@ -304,3 +301,30 @@
 .gli-pausechip.row { margin-bottom:6px; text-align:left; }
 
 .gli-excusedrow { opacity:.55; border-style:dashed; }
+
+/* GUIDE */
+.gli-hero-right { display:flex; align-items:center; gap:8px; }
+.gli-helpbtn { width:24px; height:24px; border-radius:50%; border:1px solid var(--line); background: var(--card); color: var(--ink-dim); font-family:inherit; font-size:13px; font-weight:700; line-height:1; cursor:pointer; flex:none; }
+.gli-helpbtn:active { background: var(--card-alt); }
+.gli-guidecard { border-style:dashed; }
+.gli-guide-back { margin-bottom:12px; }
+.gli-guide-title { font-weight:700; font-size:20px; margin-bottom:4px; }
+.gli-guide-lead { font-size:12.5px; color: var(--ink-dim); margin:0 0 14px; line-height:1.5; }
+.gli-guide-sec { background: var(--card); border:1px solid var(--line); border-radius:14px; margin-bottom:8px; overflow:hidden; }
+.gli-guide-sec summary { list-style:none; cursor:pointer; padding:13px 16px; font-weight:700; font-size:14px; display:flex; justify-content:space-between; align-items:center; }
+.gli-guide-sec summary::-webkit-details-marker { display:none; }
+.gli-guide-sec summary::after { content:'+'; color: var(--ink-faint); font-size:18px; font-weight:400; }
+.gli-guide-sec[open] summary::after { content:'–'; }
+.gli-guide-sec .body { padding:0 16px 12px; font-size:13px; line-height:1.55; color: var(--ink); }
+.gli-guide-sec .body p { margin:0 0 9px; }
+.gli-guide-sec .body ul { margin:0 0 9px; padding-left:18px; }
+.gli-guide-sec .body li { margin-bottom:4px; }
+.gli-guide-sec .body b { font-weight:600; }
+.gli-guide-tiers { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
+.gli-guide-tiers span { font-family:'IBM Plex Mono',monospace; font-size:11px; background: var(--gold-dim); color: var(--gold); border-radius:6px; padding:3px 7px; }
+.gli-guide-example { background: var(--card-alt); border-left:3px solid var(--gold); border-radius:8px; padding:9px 12px; font-size:12px; color: var(--ink-dim); margin:0 0 9px; }
+.gli-guide-example b { color: var(--ink); }
+.gli-guide-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background: var(--ink-faint); margin:0 3px 0 4px; vertical-align:middle; }
+.gli-guide-dot.full { background: var(--green); }
+.gli-guide-dot.part { background: var(--gold); }
+.gli-guide-dot.off { background: var(--blue); }

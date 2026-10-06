@@ -14,8 +14,8 @@ Everything about a challenge is configurable from the **Settings** tab:
     optional weekly and end-of-challenge bonus tiers and your own currency symbol.
   - **Streak & prize** — tracks your current and best streak and unlocks a prize you
     name once you've completed the target number of days.
-- **Rest days & holidays** — fixed rest weekdays (e.g. every Sunday), a number of
-  flexible rest days for the whole challenge (used whenever you like from the Today screen), and holiday date ranges.
+- **Rest days & holidays** — a number of rest days for the whole challenge (used
+  whenever you like from the Today screen), and holiday date ranges.
   A rest day counts as a full day: paid in full, qualifying, and it keeps a streak going.
   Holidays pause the challenge — the end date moves back so no challenge days are lost.
 - **Body tracking** — weekly weigh-in & measurement cards, on or off.
@@ -90,6 +90,6 @@ src/
   useTrackerData.js   - saves/loads one challenge's days & body data in local storage
   useTheme.js         - light / dark / system theme
   App.jsx             - ties the tabs together
-  components/         - Today / Week / Totals / Body / Settings views, challenge editor,
+  components/         - Today / Week / Totals / Body / Settings / Guide views, challenge editor,
                         hero and nav bar
 ```

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { DOWS, MONTHS, challengeDates, toDate, dayTotal, dayIsFull, groupDone, habitSub, habitsDone, allHabits, weekTarget, money, effectiveDay, plannedOff, restInfo, REST_FIELD, holidayBefore, fmtShort } from '../challenge'
+import { DOWS, MONTHS, challengeDates, toDate, dayTotal, dayIsFull, groupDone, habitSub, habitsDone, allHabits, weekTarget, money, effectiveDay, restCredited, restInfo, REST_FIELD, holidayBefore, fmtShort } from '../challenge'
 import ToggleRow from './ToggleRow'
 
 export default function TodayView({ c, dayIdx, setDayIdx, getDay, toggleDayField, setDayNotes }) {
@@ -16,16 +16,16 @@ export default function TodayView({ c, dayIdx, setDayIdx, getDay, toggleDayField
     .filter(([, t]) => t)
     .map(([l, t]) => `${l.toLowerCase()} ${t}`)
 
-  const planned = plannedOff(c, dateStr)
   const rest = restInfo(c, getDay)
   const off = rest.map.get(dateStr)
   // Scored view of the day: a rest day counts as every habit done.
-  const d = effectiveDay(c, raw, !!off)
+  const d = effectiveDay(c, raw, !!off, dateStr)
+  const upcomingRest = !!off && !restCredited(true, dateStr)
   const { done, total } = habitsDone(c, d)
   const full = dayIsFull(c, d)
-  const flexOn = !!off?.flexible
-  // Can mark this day as rest if it isn't a fixed rest day and the allowance isn't used up.
-  const canFlex = !planned && rest.flexTotal > 0 && (flexOn || rest.flexLeft > 0)
+  const flexOn = !!off
+  // Can mark this day as rest while the allowance isn't used up.
+  const canFlex = rest.flexTotal > 0 && (flexOn || rest.flexLeft > 0)
   const pausedBefore = holidayBefore(c, dayIdx)
 
   return (
@@ -51,7 +51,7 @@ export default function TodayView({ c, dayIdx, setDayIdx, getDay, toggleDayField
         <div className="gli-offbanner">
           <div className="icon" aria-hidden="true">😴</div>
           <div>
-            <div className="t">{off.label} — counts as a full day</div>
+            <div className="t">{off.label} — {upcomingRest ? 'will count as a full day' : 'counts as a full day'}</div>
             <div className="s">
               {isMoney ? 'Paid in full and qualifying. Habits are optional today.' : 'Your streak keeps going. Habits are optional today.'}
             </div>
@@ -79,7 +79,7 @@ export default function TodayView({ c, dayIdx, setDayIdx, getDay, toggleDayField
         </div>
       )}
 
-      {rest.flexTotal > 0 && !planned && (
+      {rest.flexTotal > 0 && (
         <ToggleRow variant="rest" on={flexOn}
                    label="Take a rest day"
                    sub={canFlex
