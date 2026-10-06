@@ -1,9 +1,9 @@
-import { DOWS, toDate, dayTotal, dayIsFull, habitsDone, weekStats, weekCount, allHabits, weekTarget, money, weekOffMap } from '../challenge'
+import { DOWS, toDate, dayTotal, dayIsFull, habitsDone, weekStats, weekCount, allHabits, weekTarget, money, effectiveDay, restInfo, holidayBefore, fmtShort } from '../challenge'
 
 export default function WeekView({ c, weekIdx, setWeekIdx, getDay }) {
   const w = weekStats(c, weekIdx, getDay)
   const isMoney = c.rewardMode === 'money'
-  const off = weekOffMap(c, weekIdx, getDay).map
+  const off = restInfo(c, getDay).map
   const targets = allHabits(c).map((h) => [h.label, weekTarget(h, weekIdx)]).filter(([, t]) => t)
 
   return (
@@ -20,19 +20,27 @@ export default function WeekView({ c, weekIdx, setWeekIdx, getDay }) {
       </div>
 
       <div className="gli-daylist">
-        {w.dates.map((dt) => {
-          const d = getDay(dt)
+        {w.dates.map((dt, i) => {
+          const gap = holidayBefore(c, weekIdx * 7 + i)
+          const o = off.get(dt)
+          const d = effectiveDay(c, getDay(dt), !!o)
           const { done, total } = habitsDone(c, d)
           const full = dayIsFull(c, d)
-          const o = off.get(dt)
-          const dotClass = full ? 'full' : o ? 'off' : done > 0 ? 'part' : ''
+          const dotClass = full ? 'full' : done > 0 ? 'part' : ''
           const dateObj = toDate(dt)
           return (
-            <div className="gli-daymini" key={dt}>
+            <div key={dt}>
+            {gap && (
+              <div className="gli-pausechip row">
+                🌴 Paused · {gap.label || 'Holiday'} · {fmtShort(gap.from)}{gap.to !== gap.from ? `–${fmtShort(gap.to)}` : ''}
+              </div>
+            )}
+            <div className="gli-daymini">
               <div className={'dot ' + dotClass} />
               <div className="nm">{DOWS[dateObj.getDay()]} {dateObj.getDate()}</div>
-              {o && <div className="gli-offtag">{o.kind === 'holiday' ? '🌴 ' : ''}{o.label}</div>}
+              {o && <div className="gli-offtag">{o.label}</div>}
               <div className="amt gli-mono">{isMoney ? money(c, dayTotal(c, d)) : `${done}/${total}`}</div>
+            </div>
             </div>
           )
         })}
@@ -47,7 +55,7 @@ export default function WeekView({ c, weekIdx, setWeekIdx, getDay }) {
             </div>
           )}
           <div className={'gli-stat' + (w.gate ? '' : ' wide')}>
-            <div className="l">Qualifying days{w.offDays ? ` · incl. ${w.offDays} off` : ''}</div>
+            <div className="l">Qualifying days{w.offDays ? ` · ${w.offDays} rest` : ''}</div>
             <div className="v">{w.qualifying} / {w.dates.length}</div>
           </div>
           <div className="gli-stat">
@@ -66,9 +74,9 @@ export default function WeekView({ c, weekIdx, setWeekIdx, getDay }) {
       ) : (
         <div className="gli-statgrid">
           <div className="gli-stat wide">
-            <div className="l">Days complete this week{w.offDays ? ` · ${w.offDays} off` : ''}</div>
+            <div className="l">Days complete this week{w.offDays ? ` · ${w.offDays} rest` : ''}</div>
             <div className="v gli-mono" style={{ color: 'var(--green)' }}>
-              {w.dates.filter((dt) => dayIsFull(c, getDay(dt))).length} / {w.dates.length - w.offDays}
+              {w.qualifying} / {w.dates.length}
             </div>
           </div>
         </div>

@@ -47,8 +47,9 @@ function MoneyTotals({ c, getDay }) {
       </div>
 
       <div className="gli-note">
-        A <b>qualifying day</b> means every habit group was completed that day. Rest days and holidays
-        count as qualifying and don&rsquo;t break the weekly requirement, but only earn daily money if you do the habits.
+        A <b>qualifying day</b> means every habit group was completed that day. A rest day counts as a full,
+        paid, qualifying day. Holidays pause the challenge
+        entirely — the end date moves back so no challenge days are lost.
         {c.weeklyBonus.enabled && (
           <> The weekly bonus applies to full 7-day weeks
             {c.weeklyBonus.gateGroupId ? <> where &ldquo;{c.groups.find((g) => g.id === c.weeklyBonus.gateGroupId)?.name}&rdquo; was done every day</> : null}.</>
@@ -103,8 +104,9 @@ function StreakTotals({ c, getDay }) {
 
       <div className="gli-note">
         A day counts as <b>complete</b> when every habit is ticked. Today stays &ldquo;in progress&rdquo; and
-        won&rsquo;t break your current streak until it&rsquo;s over. Rest days and holidays pause the streak
-        without breaking it{s.offTaken ? ` — you've taken ${s.offTaken} so far` : ''}.
+        won&rsquo;t break your current streak until it&rsquo;s over. Rest days count as completed days
+        and keep the streak going{s.offTaken ? ` — you've taken ${s.offTaken} so far` : ''}. Holidays pause the whole
+        challenge and move the end date back.
       </div>
     </>
   )

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { addDays, fmtShort, toDate, DOWS, restCfg } from '../challenge'
+import { fmtShort, toDate, DOWS, restCfg, maxRewardBreakdown, money, endDate, holidayDaysAdded } from '../challenge'
 import { newId } from '../presets'
 
 // The editor works on a "draft": numbers kept as strings and weekly targets as a raw
@@ -15,8 +15,8 @@ function toDraft(c) {
     weeklyBonus: { ...c.weeklyBonus, tiers: tiers(c.weeklyBonus.tiers) },
     endBonus: { ...c.endBonus, tiers: tiers(c.endBonus.tiers) },
     streak: { ...c.streak, targetDays: String(c.streak.targetDays) },
-    restDays: (({ weekdays, perWeek, holidays }) => ({
-      weekdays, perWeek: String(perWeek), holidays: holidays.map((h) => ({ ...h, label: h.label || '' })),
+    restDays: (({ weekdays, flexTotal, holidays }) => ({
+      weekdays, flexTotal: String(flexTotal), holidays: holidays.map((h) => ({ ...h, label: h.label || '' })),
     }))(restCfg(c)),
   }
 }
@@ -49,7 +49,7 @@ function fromDraft(d) {
     streak: { prize: d.streak.prize.trim(), targetDays: Math.min(Math.round(num(d.streak.targetDays)) || lengthDays, lengthDays) },
     restDays: {
       weekdays: [...d.restDays.weekdays].sort(),
-      perWeek: Math.min(6, Math.round(num(d.restDays.perWeek))),
+      flexTotal: Math.min(lengthDays, Math.round(num(d.restDays.flexTotal))),
       holidays: d.restDays.holidays
         .filter((h) => h.start)
         .map((h) => {
@@ -80,7 +80,12 @@ export default function ChallengeEditor({ initial, isNew, onSave, onCancel }) {
 
   const isMoney = d.rewardMode === 'money'
   const len = Math.round(Number(d.lengthDays)) || 0
-  const endLabel = len > 0 && /^\d{4}-\d{2}-\d{2}$/.test(d.startDate) ? fmtShort(addDays(d.startDate, len - 1)) : '—'
+  // Live previews, from the draft as it would be saved.
+  const saved = fromDraft(d)
+  const datesOk = len > 0 && len <= 366 && /^\d{4}-\d{2}-\d{2}$/.test(d.startDate)
+  const prize = isMoney && datesOk ? maxRewardBreakdown(saved) : null
+  const added = datesOk ? holidayDaysAdded(saved) : 0
+  const endLabel = datesOk ? fmtShort(endDate(saved)) + (added ? ` (+${added} holiday)` : '') : '—'
 
   const save = () => {
     const c = fromDraft(d)
@@ -93,7 +98,10 @@ export default function ChallengeEditor({ initial, isNew, onSave, onCancel }) {
     <div className="gli-editor">
       <div className="gli-editor-head">
         {onCancel ? <button className="gli-btn" onClick={onCancel}>Cancel</button> : <span />}
-        <div className="t">{isNew ? 'New challenge' : 'Edit challenge'}</div>
+        <div className="t">
+          {isNew ? 'New challenge' : 'Edit challenge'}
+          {prize && <div className="gli-headmax gli-mono">Up to {money(d, prize.total)}</div>}
+        </div>
         <button className="gli-btn primary" onClick={save}>Save</button>
       </div>
 
@@ -129,6 +137,7 @@ export default function ChallengeEditor({ initial, isNew, onSave, onCancel }) {
                 <input className="gli-input short" value={d.currency} maxLength={3} onChange={(e) => update((n) => { n.currency = e.target.value })} />
               </Field>
               <div className="gli-hint">Each habit group below earns its amount on days when all its habits are done.</div>
+              <MaxPrize c={d} b={prize} />
             </>
           ) : (
             <>
@@ -179,6 +188,11 @@ export default function ChallengeEditor({ initial, isNew, onSave, onCancel }) {
         })}>+ Add habit group</button>
 
         <div className="gli-label">Rest days &amp; holidays <span className="gli-faint">· never break a streak</span></div>
+        <div className="gli-hint">
+          <b>Rest days</b> count as a full day{isMoney ? ' — paid in full and qualifying' : ' and keep your streak going'},
+          so resting as planned never costs you anything.
+          {' '}<b>Holidays</b> pause the challenge — the end date moves back and you carry on as if nothing happened.
+        </div>
         <div className="gli-card">
           <Field label="Fixed rest days every week">
             <div className="gli-daychips">
@@ -194,9 +208,9 @@ export default function ChallengeEditor({ initial, isNew, onSave, onCancel }) {
               })}
             </div>
           </Field>
-          <Field label="Flexible rest days per week (you pick them on the Today screen)">
-            <input className="gli-input short" type="number" inputMode="numeric" min="0" max="6" value={d.restDays.perWeek}
-                   onChange={(e) => update((n) => { n.restDays.perWeek = e.target.value })} />
+          <Field label="Flexible rest days for the whole challenge (use them on any day, from the Today screen)">
+            <input className="gli-input short" type="number" inputMode="numeric" min="0" value={d.restDays.flexTotal}
+                   onChange={(e) => update((n) => { n.restDays.flexTotal = e.target.value })} />
           </Field>
 
           <div className="gli-formfield"><span>Holidays</span></div>
@@ -223,10 +237,7 @@ export default function ChallengeEditor({ initial, isNew, onSave, onCancel }) {
           <button className="gli-addbtn" onClick={() => update((n) => {
             n.restDays.holidays.push({ start: n.startDate, end: n.startDate, label: '' })
           })}>+ Add holiday</button>
-          <div className="gli-hint">
-            Off days pause your streak instead of breaking it. Ticking everything on an off day still counts.
-            {isMoney && ' In money mode they count towards bonus thresholds but earn no daily money unless done.'}
-          </div>
+          {added > 0 && <div className="gli-hint">Holidays add {added} day{added === 1 ? '' : 's'} — the challenge now ends {fmtShort(endDate(saved))}.</div>}
         </div>
 
         <div className="gli-label">Extra tracking <span className="gli-faint">· doesn&rsquo;t count towards the day</span></div>
@@ -282,6 +293,29 @@ export default function ChallengeEditor({ initial, isNew, onSave, onCancel }) {
         )}
 
         <button className="gli-btn primary block" onClick={save}>Save challenge</button>
+      </div>
+    </div>
+  )
+}
+
+function MaxPrize({ c, b }) {
+  const rows = [
+    [`Daily · ${money(c, b.perDay)} × ${b.days} days`, b.daily],
+    ...(b.weekly ? [[`Weekly bonus · ${money(c, b.weeklyTop)} × ${b.fullWeeks} full week${b.fullWeeks === 1 ? '' : 's'}`, b.weekly]] : []),
+    ...(b.end ? [['End-of-challenge bonus (top tier)', b.end]] : []),
+  ]
+  return (
+    <div className="gli-maxprize">
+      <div className="hd">
+        <span>Total that can be won</span>
+        <span className="v gli-mono">{money(c, b.total)}</span>
+      </div>
+      {rows.map(([label, amount]) => (
+        <div className="row" key={label}><span>{label}</span><span className="gli-mono">{money(c, amount)}</span></div>
+      ))}
+      <div className="note">
+        Every day qualifying, hitting the top bonus tiers. Rest days and holidays don&rsquo;t reduce it —
+        rest days pay in full, and holidays just move the end date.
       </div>
     </div>
   )

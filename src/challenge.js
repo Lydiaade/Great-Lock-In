@@ -27,11 +27,29 @@ export function todayISO() {
   return fmtISO(new Date())
 }
 
+// ---------- Timeline ----------
+// The challenge is `lengthDays` challenge days long. Holidays pause it: holiday dates
+// are skipped and the end date moves back, so every challenge day still happens.
+const datesCache = new WeakMap()
 export function challengeDates(c) {
-  return Array.from({ length: c.lengthDays }, (_, i) => addDays(c.startDate, i))
+  if (datesCache.has(c)) return datesCache.get(c)
+  const dates = []
+  let dt = c.startDate
+  // Guard against runaway holiday ranges.
+  for (let guard = 0; dates.length < c.lengthDays && guard < c.lengthDays + 3700; guard++) {
+    if (!holidayOn(c, dt)) dates.push(dt)
+    dt = addDays(dt, 1)
+  }
+  datesCache.set(c, dates)
+  return dates
 }
 export function endDate(c) {
-  return addDays(c.startDate, c.lengthDays - 1)
+  const dates = challengeDates(c)
+  return dates[dates.length - 1] || c.startDate
+}
+// Calendar days added to the challenge by holidays.
+export function holidayDaysAdded(c) {
+  return daysBetween(c.startDate, endDate(c)) + 1 - challengeDates(c).length
 }
 export function fmtRange(c) {
   const end = endDate(c)
@@ -40,13 +58,31 @@ export function fmtRange(c) {
 export function weekCount(c) {
   return Math.ceil(c.lengthDays / 7)
 }
-// Index of a date within the challenge (may be negative or >= length when outside it).
+// Challenge-day index of a date: negative before the start, >= length after the end.
+// A holiday date maps to the next challenge day (the one the challenge resumes on).
 export function dayIndex(c, dateStr) {
-  return daysBetween(c.startDate, dateStr)
+  const dates = challengeDates(c)
+  if (dateStr < c.startDate) return daysBetween(c.startDate, dateStr)
+  const end = dates[dates.length - 1]
+  if (dateStr > end) return dates.length - 1 + daysBetween(end, dateStr)
+  const i = dates.findIndex((d) => d >= dateStr)
+  return i
 }
 // Today's index clamped into the challenge, for default navigation.
 export function defaultDayIdx(c) {
   return Math.min(Math.max(dayIndex(c, todayISO()), 0), c.lengthDays - 1)
+}
+// The holiday today falls in, if it pauses the challenge right now.
+export function pausedToday(c) {
+  const t = todayISO()
+  return t >= c.startDate && t <= endDate(c) ? holidayOn(c, t) : null
+}
+// The holiday (if any) the challenge paused for just before challenge day `idx`.
+export function holidayBefore(c, idx) {
+  const dates = challengeDates(c)
+  if (idx <= 0 || daysBetween(dates[idx - 1], dates[idx]) <= 1) return null
+  const from = addDays(dates[idx - 1], 1), to = addDays(dates[idx], -1)
+  return { ...holidayOn(c, from), from, to }
 }
 
 // ---------- Habits ----------
@@ -69,49 +105,53 @@ export function countedHabits(c) {
 }
 
 // ---------- Rest days & holidays ----------
-// A day is "off" when it falls in a holiday, on a fixed weekly rest weekday, or the
-// user marked it as a flexible rest day (day field `_rest`, limited to perWeek per
-// challenge week). Off days never break a streak and don't fail weekly bonus rules.
+// Holidays aren't challenge days at all (see challengeDates). A challenge day is a rest
+// day when it falls on a fixed rest weekday, or the user marked it as a flexible rest day
+// (day field `_rest`, limited to `flexTotal` across the whole challenge). Rest is paid: a rest day is
+// scored as if every habit was done (effectiveDay) — full daily amount, qualifying, and
+// it keeps the streak going. Resting as planned never costs anything.
 export const REST_FIELD = '_rest'
 
 export function restCfg(c) {
   const r = c.restDays || {}
-  return { weekdays: r.weekdays || [], perWeek: Number(r.perWeek) || 0, holidays: r.holidays || [] }
+  // Older configs stored a per-week allowance; convert it to a challenge-wide total.
+  const flexTotal = r.flexTotal != null ? Number(r.flexTotal) || 0 : (Number(r.perWeek) || 0) * weekCount(c)
+  return { weekdays: r.weekdays || [], flexTotal, holidays: r.holidays || [] }
 }
 
 export function holidayOn(c, dateStr) {
   return restCfg(c).holidays.find((h) => dateStr >= h.start && dateStr <= (h.end || h.start)) || null
 }
 
-// Planned off days (holiday / fixed weekday) — known in advance, no day data needed.
+// Fixed rest days — known in advance, no day data needed.
 export function plannedOff(c, dateStr) {
-  const h = holidayOn(c, dateStr)
-  if (h) return { kind: 'holiday', label: h.label || 'Holiday' }
   if (restCfg(c).weekdays.includes(toDate(dateStr).getDay())) return { kind: 'rest', label: 'Rest day' }
   return null
 }
 
-// Off status for every date in one challenge week. Flexible rest days only count up to
-// perWeek (earliest first), so lowering the allowance later can't over-credit.
-export function weekOffMap(c, weekIdx, getDay) {
-  const { perWeek } = restCfg(c)
+// Rest status for every challenge date. Flexible rest days only count up to the
+// challenge-wide allowance (earliest first), so lowering it later can't over-credit.
+export function restInfo(c, getDay) {
+  const { flexTotal } = restCfg(c)
   const map = new Map()
   let flexUsed = 0
-  challengeDates(c).slice(weekIdx * 7, weekIdx * 7 + 7).forEach((dt) => {
+  challengeDates(c).forEach((dt) => {
     const planned = plannedOff(c, dt)
     if (planned) map.set(dt, planned)
-    else if (getDay(dt)[REST_FIELD] && flexUsed < perWeek) {
+    else if (getDay(dt)[REST_FIELD] && flexUsed < flexTotal) {
       flexUsed++
       map.set(dt, { kind: 'rest', label: 'Rest day', flexible: true })
     }
   })
-  return { map, flexUsed, flexLeft: Math.max(0, perWeek - flexUsed) }
+  return { map, flexTotal, flexUsed, flexLeft: Math.max(0, flexTotal - flexUsed) }
 }
 
-export function offMap(c, getDay) {
-  const map = new Map()
-  for (let w = 0; w < weekCount(c); w++) weekOffMap(c, w, getDay).map.forEach((v, k) => map.set(k, v))
-  return map
+// The day's data as scored: a rest day counts as every habit done.
+export function effectiveDay(c, d, isRest) {
+  if (!isRest) return d
+  const e = { ...d }
+  countedHabits(c).forEach((h) => { e[h.id] = true })
+  return e
 }
 
 // ---------- Scoring ----------
@@ -146,15 +186,14 @@ export function weekStats(c, weekIdx, getDay) {
   const dates = challengeDates(c).slice(weekIdx * 7, weekIdx * 7 + 7)
   const wb = c.weeklyBonus
   const gate = wb.gateGroupId ? c.groups.find((g) => g.id === wb.gateGroupId) : null
-  const { map: off } = weekOffMap(c, weekIdx, getDay)
+  const { map: off } = restInfo(c, getDay)
   let gateAll = true, qualifying = 0, dailySum = 0, offDays = 0
   dates.forEach((dt) => {
-    const d = getDay(dt)
     const isOff = off.has(dt)
     if (isOff) offDays++
-    // Off days pass the gate and count as qualifying, but only earn daily money if done.
-    if (gate && !isOff && !groupDone(gate, d)) gateAll = false
-    if (isOff || dayIsFull(c, d)) qualifying++
+    const d = effectiveDay(c, getDay(dt), isOff)
+    if (gate && !groupDone(gate, d)) gateAll = false
+    if (dayIsFull(c, d)) qualifying++
     dailySum += dayTotal(c, d)
   })
   // Weekly bonus only applies to complete 7-day weeks, and only once the gate group
@@ -172,12 +211,20 @@ export function challengeStats(c, getDay) {
   return { weeks, totalQualifying, endBonus, grand: dailyPlusWeekly + endBonus, max: maxReward(c) }
 }
 
-export function maxReward(c) {
+// The most that can be won: every day qualifying, top weekly and end tiers. Rest days
+// don't reduce it — they pay in full.
+export function maxRewardBreakdown(c) {
   const fullWeeks = Math.floor(c.lengthDays / 7)
   const maxTier = (tiers) => Math.max(0, ...(tiers || []).map((t) => t.amount))
-  return c.lengthDays * maxPerDay(c)
-    + (c.weeklyBonus.enabled ? fullWeeks * maxTier(c.weeklyBonus.tiers) : 0)
-    + (c.endBonus.enabled ? maxTier(c.endBonus.tiers) : 0)
+  const perDay = maxPerDay(c)
+  const weeklyTop = c.weeklyBonus.enabled ? maxTier(c.weeklyBonus.tiers) : 0
+  const daily = c.lengthDays * perDay
+  const weekly = fullWeeks * weeklyTop
+  const end = c.endBonus.enabled ? maxTier(c.endBonus.tiers) : 0
+  return { perDay, days: c.lengthDays, daily, weeklyTop, fullWeeks, weekly, end, total: daily + weekly + end }
+}
+export function maxReward(c) {
+  return maxRewardBreakdown(c).total
 }
 
 // End-bonus tiers as display rows, highest first, with day ranges.
@@ -197,38 +244,33 @@ export function streakStats(c, getDay) {
   const dates = challengeDates(c)
   const todayIdx = dayIndex(c, todayISO())
   const lastIdx = Math.min(todayIdx, dates.length - 1)
-  const full = dates.map((dt) => dayIsFull(c, getDay(dt)))
-  const offs = offMap(c, getDay)
-  const off = dates.map((dt) => offs.has(dt))
+  const offs = restInfo(c, getDay).map
+  // Rest days are scored as full days (see effectiveDay).
+  const full = dates.map((dt) => dayIsFull(c, effectiveDay(c, getDay(dt), offs.has(dt))))
 
-  // Off days are neutral: they don't add to the streak (unless done anyway) or break it.
   let completed = 0, best = 0, run = 0
   for (let i = 0; i <= lastIdx; i++) {
-    if (full[i]) { completed++; run++; best = Math.max(best, run) } else if (!off[i]) run = 0
+    if (full[i]) { completed++; run++; best = Math.max(best, run) } else run = 0
   }
 
   // Today still in progress doesn't break the streak — count back from yesterday.
   let i = lastIdx
   if (i === todayIdx && i >= 0 && !full[i]) i--
   let current = 0
-  while (i >= 0 && (full[i] || off[i])) { if (full[i]) current++; i-- }
+  while (i >= 0 && full[i]) { current++; i-- }
 
-  // Planned off days (holidays, fixed rest weekdays) reduce the days available to win.
-  const plannedOffCount = dates.filter((dt) => plannedOff(c, dt)).length
-  const activeDays = Math.max(1, dates.length - plannedOffCount)
-  const target = Math.min(Number(c.streak.targetDays) || activeDays, activeDays)
+  const target = Math.min(Number(c.streak.targetDays) || dates.length, dates.length)
 
-  // Days that can still be completed (today counts if not yet done; off days don't).
-  const from = Math.max(0, todayIdx)
+  // Days that can still be completed: today if not yet done, and every future day.
   let daysLeft = 0
-  for (let j = from; j < dates.length; j++) {
-    if (full[j] || off[j]) continue
-    daysLeft++
+  for (let j = Math.max(0, todayIdx); j < dates.length; j++) {
+    if (!(j <= lastIdx && full[j])) daysLeft++
   }
 
   return {
-    completed, best, current, target, daysLeft, activeDays,
-    offTaken: off.slice(0, lastIdx + 1).filter(Boolean).length,
+    completed, best, current, target, daysLeft,
+    activeDays: dates.length,
+    offTaken: dates.slice(0, lastIdx + 1).filter((dt) => offs.has(dt)).length,
     unlocked: completed >= target,
     stillPossible: completed + daysLeft >= target,
   }

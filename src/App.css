@@ -290,3 +290,17 @@
 .gli-daychips button.active { background: var(--blue-dim); border-color: var(--blue); color: var(--ink); }
 .gli-2col.tight { gap:6px; margin-top:4px; }
 .gli-2col.tight .gli-formfield { margin-bottom:0; }
+
+/* Editor: max prize */
+.gli-editor-head .t { text-align:center; }
+.gli-headmax { font-size:11px; font-weight:600; color: var(--gold); margin-top:1px; }
+.gli-maxprize { margin-top:10px; background: var(--gold-dim); border:1px solid var(--gold); border-radius:12px; padding:11px 13px; }
+.gli-maxprize .hd { display:flex; justify-content:space-between; align-items:baseline; font-weight:700; font-size:13px; margin-bottom:6px; }
+.gli-maxprize .hd .v { font-size:20px; color: var(--gold); }
+.gli-maxprize .row { display:flex; justify-content:space-between; gap:8px; font-size:11.5px; color: var(--ink-dim); padding:3px 0; }
+.gli-maxprize .note { font-size:10.5px; color: var(--ink-faint); margin-top:6px; }
+
+.gli-pausechip { font-size:11.5px; color: var(--blue); background: var(--blue-dim); border:1px dashed var(--blue); border-radius:10px; padding:7px 11px; margin-bottom:12px; text-align:center; }
+.gli-pausechip.row { margin-bottom:6px; text-align:left; }
+
+.gli-excusedrow { opacity:.55; border-style:dashed; }

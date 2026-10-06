@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { DOWS, MONTHS, challengeDates, toDate, dayTotal, dayIsFull, groupDone, habitSub, habitsDone, allHabits, weekTarget, money, restCfg, plannedOff, weekOffMap, REST_FIELD } from '../challenge'
+import { DOWS, MONTHS, challengeDates, toDate, dayTotal, dayIsFull, groupDone, habitSub, habitsDone, allHabits, weekTarget, money, effectiveDay, plannedOff, restInfo, REST_FIELD, holidayBefore, fmtShort } from '../challenge'
 import ToggleRow from './ToggleRow'
 
 export default function TodayView({ c, dayIdx, setDayIdx, getDay, toggleDayField, setDayNotes }) {
   const [extrasOpen, setExtrasOpen] = useState(false)
   const dateStr = challengeDates(c)[dayIdx]
-  const d = getDay(dateStr)
+  const raw = getDay(dateStr)
   const wkIdx = Math.floor(dayIdx / 7)
   const dt = toDate(dateStr)
   const isMoney = c.rewardMode === 'money'
@@ -16,16 +16,17 @@ export default function TodayView({ c, dayIdx, setDayIdx, getDay, toggleDayField
     .filter(([, t]) => t)
     .map(([l, t]) => `${l.toLowerCase()} ${t}`)
 
+  const planned = plannedOff(c, dateStr)
+  const rest = restInfo(c, getDay)
+  const off = rest.map.get(dateStr)
+  // Scored view of the day: a rest day counts as every habit done.
+  const d = effectiveDay(c, raw, !!off)
   const { done, total } = habitsDone(c, d)
   const full = dayIsFull(c, d)
-
-  const { perWeek } = restCfg(c)
-  const planned = plannedOff(c, dateStr)
-  const week = weekOffMap(c, wkIdx, getDay)
-  const off = week.map.get(dateStr)
   const flexOn = !!off?.flexible
-  // Can mark today as rest if it isn't already a planned off day and allowance remains.
-  const canFlex = !planned && perWeek > 0 && (flexOn || week.flexLeft > 0)
+  // Can mark this day as rest if it isn't a fixed rest day and the allowance isn't used up.
+  const canFlex = !planned && rest.flexTotal > 0 && (flexOn || rest.flexLeft > 0)
+  const pausedBefore = holidayBefore(c, dayIdx)
 
   return (
     <>
@@ -39,13 +40,20 @@ export default function TodayView({ c, dayIdx, setDayIdx, getDay, toggleDayField
       </div>
       <div className="gli-weekchip">{['Week ' + (wkIdx + 1), ...targets].join(' · ')}</div>
 
+      {pausedBefore && (
+        <div className="gli-pausechip">
+          🌴 Challenge paused for {pausedBefore.label || 'holiday'} · {fmtShort(pausedBefore.from)}
+          {pausedBefore.to !== pausedBefore.from ? `–${fmtShort(pausedBefore.to)}` : ''} · picks up here
+        </div>
+      )}
+
       {off && (
         <div className="gli-offbanner">
-          <div className="icon" aria-hidden="true">{off.kind === 'holiday' ? '🌴' : '😴'}</div>
+          <div className="icon" aria-hidden="true">😴</div>
           <div>
-            <div className="t">{off.label}{full ? ' — done anyway!' : ''}</div>
+            <div className="t">{off.label} — counts as a full day</div>
             <div className="s">
-              {full ? 'This one counts as a completed day too.' : 'Your streak is safe — habits are optional today.'}
+              {isMoney ? 'Paid in full and qualifying. Habits are optional today.' : 'Your streak keeps going. Habits are optional today.'}
             </div>
           </div>
         </div>
@@ -62,21 +70,21 @@ export default function TodayView({ c, dayIdx, setDayIdx, getDay, toggleDayField
           <div className="v gli-mono">{money(c, dayTotal(c, d))}</div>
         </div>
       ) : (
-        <div className={'gli-daytotal' + (full ? ' complete' : off ? ' off' : '')}>
+        <div className={'gli-daytotal' + (full ? ' complete' : '')}>
           <div>
-            <div className="l">{full ? 'Day complete — streak kept' : off ? 'Day off — streak paused, not broken' : 'Complete every habit to keep the streak'}</div>
+            <div className="l">{full ? 'Day complete — streak kept' : 'Complete every habit to keep the streak'}</div>
             <div className="breakdown">{done} of {total} habits done</div>
           </div>
           <div className="v gli-mono">{full ? '✓' : `${done}/${total}`}</div>
         </div>
       )}
 
-      {perWeek > 0 && !planned && (
+      {rest.flexTotal > 0 && !planned && (
         <ToggleRow variant="rest" on={flexOn}
                    label="Take a rest day"
                    sub={canFlex
-                     ? `${week.flexLeft} of ${perWeek} left this week${flexOn ? ' · using one' : ''}`
-                     : `All ${perWeek} used this week`}
+                     ? `${rest.flexLeft} of ${rest.flexTotal} left for the challenge${flexOn ? ' · using one' : ''}`
+                     : `All ${rest.flexTotal} used`}
                    onClick={() => { if (canFlex) toggleDayField(dateStr, REST_FIELD) }} />
       )}
 
@@ -88,21 +96,25 @@ export default function TodayView({ c, dayIdx, setDayIdx, getDay, toggleDayField
               ? ` · ${money(c, g.value)} if all ${g.habits.length} are hit`
               : ` · ${money(c, g.value)}`)}
           </div>
-          {g.habits.map((h) => (
-            <ToggleRow key={h.id} variant={g.id === gateId ? 'gate' : undefined} on={!!d[h.id]}
-                       label={h.label} sub={habitSub(h, wkIdx)} onClick={() => toggleDayField(dateStr, h.id)} />
-          ))}
+          {g.habits.map((h) => {
+            const excused = off && !raw[h.id]
+            return (
+              <ToggleRow key={h.id} variant={excused ? 'excused' : g.id === gateId ? 'gate' : undefined} on={!!raw[h.id]}
+                         label={h.label} sub={excused ? 'Excused — rest day' : habitSub(h, wkIdx)}
+                         onClick={() => toggleDayField(dateStr, h.id)} />
+            )
+          })}
         </div>
       ))}
 
       {c.extras.length > 0 && (
         <>
           <div className="gli-extra-toggle" onClick={() => setExtrasOpen(!extrasOpen)}>
-            {extrasOpen ? 'Hide extra tracking' : `Extra tracking (${c.extras.filter((h) => d[h.id]).length}/${c.extras.length})`}
+            {extrasOpen ? 'Hide extra tracking' : `Extra tracking (${c.extras.filter((h) => raw[h.id]).length}/${c.extras.length})`}
           </div>
           <div className={'gli-extras' + (extrasOpen ? ' open' : '')}>
             {c.extras.map((h) => (
-              <ToggleRow key={h.id} on={!!d[h.id]} label={h.label} sub={habitSub(h, wkIdx)}
+              <ToggleRow key={h.id} on={!!raw[h.id]} label={h.label} sub={habitSub(h, wkIdx)}
                          onClick={() => toggleDayField(dateStr, h.id)} />
             ))}
           </div>
@@ -111,7 +123,7 @@ export default function TodayView({ c, dayIdx, setDayIdx, getDay, toggleDayField
 
       <div className="gli-label">Notes</div>
       <textarea className="gli-notes" placeholder="Anything worth remembering about today…"
-                value={d.notes || ''} onChange={(e) => setDayNotes(dateStr, e.target.value)} />
+                value={raw.notes || ''} onChange={(e) => setDayNotes(dateStr, e.target.value)} />
     </>
   )
 }

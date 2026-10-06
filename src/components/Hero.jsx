@@ -1,8 +1,12 @@
-import { challengeStats, streakStats, dayIndex, todayISO, fmtRange, money } from '../challenge'
+import { challengeStats, streakStats, dayIndex, todayISO, fmtRange, money, pausedToday } from '../challenge'
 
 export default function Hero({ c, getDay, saveState }) {
   const idx = dayIndex(c, todayISO())
-  const dayLabel = idx < 0 ? `Starts in ${-idx}d` : idx >= c.lengthDays ? 'Finished' : `Day ${idx + 1} / ${c.lengthDays}`
+  const paused = pausedToday(c)
+  const dayLabel = idx < 0 ? `Starts in ${-idx}d`
+    : idx >= c.lengthDays ? 'Finished'
+    : paused ? `🌴 Paused · ${paused.label || 'holiday'}`
+    : `Day ${idx + 1} / ${c.lengthDays}`
   const saveLabel = saveState === 'error' ? 'Save failed' : 'Saved'
 
   return (

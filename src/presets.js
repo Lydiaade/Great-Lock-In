@@ -9,7 +9,7 @@ import { todayISO } from './challenge'
 //   weeklyBonus: { enabled, gateGroupId, tiers: [{ minDays, amount }] },
 //   endBonus: { enabled, tiers: [{ minDays, amount }] },
 //   streak: { targetDays, prize },
-//   restDays: { weekdays: [0-6], perWeek, holidays: [{ start, end, label }] },
+//   restDays: { weekdays: [0-6], flexTotal, holidays: [{ start, end, label }] },
 //   bodyTracking,
 // }
 // A habit's `sub` may contain {target}, replaced with that week's entry from `weekly`.
@@ -59,7 +59,7 @@ export function greatLockInPreset() {
       { minDays: 26, amount: 100 }, { minDays: 23, amount: 70 }, { minDays: 20, amount: 40 },
     ] },
     streak: { targetDays: 24, prize: '' },
-    restDays: { weekdays: [], perWeek: 0, holidays: [] },
+    restDays: { weekdays: [], flexTotal: 0, holidays: [] },
     bodyTracking: true,
   }
 }
@@ -80,7 +80,7 @@ export function blankPreset() {
     weeklyBonus: { enabled: false, gateGroupId: '', tiers: [{ minDays: 7, amount: 10 }] },
     endBonus: { enabled: false, tiers: [{ minDays: 25, amount: 50 }] },
     streak: { targetDays: 25, prize: '' },
-    restDays: { weekdays: [], perWeek: 1, holidays: [] },
+    restDays: { weekdays: [], flexTotal: 4, holidays: [] },
     bodyTracking: false,
   }
 }
