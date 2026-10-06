@@ -14,6 +14,9 @@ Everything about a challenge is configurable from the **Settings** tab:
     optional weekly and end-of-challenge bonus tiers and your own currency symbol.
   - **Streak & prize** — tracks your current and best streak and unlocks a prize you
     name once you've completed the target number of days.
+- **Rest days & holidays** — fixed rest weekdays (e.g. every Sunday), a number of
+  flexible rest days per week you pick on the Today screen, and holiday date ranges.
+  Off days pause a streak instead of breaking it.
 - **Body tracking** — weekly weigh-in & measurement cards, on or off.
 - **Multiple challenges** — keep several, switch between them, duplicate one as the
   starting point for the next. Each keeps its own data.

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { addDays, fmtShort, toDate } from '../challenge'
+import { addDays, fmtShort, toDate, DOWS, restCfg } from '../challenge'
 import { newId } from '../presets'
 
 // The editor works on a "draft": numbers kept as strings and weekly targets as a raw
@@ -15,6 +15,9 @@ function toDraft(c) {
     weeklyBonus: { ...c.weeklyBonus, tiers: tiers(c.weeklyBonus.tiers) },
     endBonus: { ...c.endBonus, tiers: tiers(c.endBonus.tiers) },
     streak: { ...c.streak, targetDays: String(c.streak.targetDays) },
+    restDays: (({ weekdays, perWeek, holidays }) => ({
+      weekdays, perWeek: String(perWeek), holidays: holidays.map((h) => ({ ...h, label: h.label || '' })),
+    }))(restCfg(c)),
   }
 }
 
@@ -44,6 +47,16 @@ function fromDraft(d) {
     },
     endBonus: { ...d.endBonus, tiers: tiers(d.endBonus.tiers) },
     streak: { prize: d.streak.prize.trim(), targetDays: Math.min(Math.round(num(d.streak.targetDays)) || lengthDays, lengthDays) },
+    restDays: {
+      weekdays: [...d.restDays.weekdays].sort(),
+      perWeek: Math.min(6, Math.round(num(d.restDays.perWeek))),
+      holidays: d.restDays.holidays
+        .filter((h) => h.start)
+        .map((h) => {
+          const end = h.end && h.end >= h.start ? h.end : h.start
+          return { start: h.start, end, label: h.label.trim() }
+        }),
+    },
   }
 }
 
@@ -52,6 +65,7 @@ function validate(c) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(c.startDate) || isNaN(toDate(c.startDate))) return 'Pick a start date.'
   if (c.lengthDays < 1 || c.lengthDays > 366) return 'Length must be between 1 and 366 days.'
   if (!c.groups.length) return 'Add at least one habit.'
+  if (c.restDays.weekdays.length >= 7) return 'At least one day a week needs to be a challenge day.'
   return ''
 }
 
@@ -163,6 +177,57 @@ export default function ChallengeEditor({ initial, isNew, onSave, onCancel }) {
         <button className="gli-addbtn outline" onClick={() => update((n) => {
           n.groups.push({ id: newId('g'), name: `Group ${n.groups.length + 1}`, value: '0', habits: [emptyHabit()] })
         })}>+ Add habit group</button>
+
+        <div className="gli-label">Rest days &amp; holidays <span className="gli-faint">· never break a streak</span></div>
+        <div className="gli-card">
+          <Field label="Fixed rest days every week">
+            <div className="gli-daychips">
+              {[1, 2, 3, 4, 5, 6, 0].map((wd) => {
+                const on = d.restDays.weekdays.includes(wd)
+                return (
+                  <button key={wd} type="button" className={on ? 'active' : ''} aria-pressed={on}
+                          onClick={() => update((n) => {
+                            const w = n.restDays.weekdays
+                            n.restDays.weekdays = on ? w.filter((x) => x !== wd) : [...w, wd]
+                          })}>{DOWS[wd]}</button>
+                )
+              })}
+            </div>
+          </Field>
+          <Field label="Flexible rest days per week (you pick them on the Today screen)">
+            <input className="gli-input short" type="number" inputMode="numeric" min="0" max="6" value={d.restDays.perWeek}
+                   onChange={(e) => update((n) => { n.restDays.perWeek = e.target.value })} />
+          </Field>
+
+          <div className="gli-formfield"><span>Holidays</span></div>
+          {d.restDays.holidays.map((h, i) => (
+            <div className="gli-habitedit" key={i}>
+              <div className="row">
+                <input className="gli-input grow" placeholder="Label (e.g. Spain trip)" value={h.label}
+                       onChange={(e) => update((n) => { n.restDays.holidays[i].label = e.target.value })} />
+                <button className="gli-iconbtn" aria-label="Remove holiday"
+                        onClick={() => update((n) => { n.restDays.holidays.splice(i, 1) })}>×</button>
+              </div>
+              <div className="gli-2col tight">
+                <label className="gli-formfield"><span>From</span>
+                  <input className="gli-input small" type="date" value={h.start}
+                         onChange={(e) => update((n) => { n.restDays.holidays[i].start = e.target.value })} />
+                </label>
+                <label className="gli-formfield"><span>To</span>
+                  <input className="gli-input small" type="date" value={h.end} min={h.start}
+                         onChange={(e) => update((n) => { n.restDays.holidays[i].end = e.target.value })} />
+                </label>
+              </div>
+            </div>
+          ))}
+          <button className="gli-addbtn" onClick={() => update((n) => {
+            n.restDays.holidays.push({ start: n.startDate, end: n.startDate, label: '' })
+          })}>+ Add holiday</button>
+          <div className="gli-hint">
+            Off days pause your streak instead of breaking it. Ticking everything on an off day still counts.
+            {isMoney && ' In money mode they count towards bonus thresholds but earn no daily money unless done.'}
+          </div>
+        </div>
 
         <div className="gli-label">Extra tracking <span className="gli-faint">· doesn&rsquo;t count towards the day</span></div>
         <div className="gli-card">

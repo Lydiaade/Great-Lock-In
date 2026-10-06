@@ -1,5 +1,5 @@
 export default function ToggleRow({ on, label, sub, onClick, variant }) {
-  const cls = ['gli-row', on ? 'on' : '', variant === 'gate' ? 'gli-gaterow' : ''].filter(Boolean).join(' ')
+  const cls = ['gli-row', on ? 'on' : '', variant ? `gli-${variant}row` : ''].filter(Boolean).join(' ')
   return (
     <div className={cls} onClick={onClick} role="switch" aria-checked={on} tabIndex={0}
          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }}>
