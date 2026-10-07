@@ -289,3 +289,32 @@ export function bodyCheckpoints(c) {
 export function money(c, n) {
   return (c.currency || '') + n
 }
+
+// ---------- Completion ----------
+// Complete once the end date has passed, or on the last day as soon as it's done.
+export function isChallengeComplete(c, getDay) {
+  const end = endDate(c), t = todayISO()
+  if (t !== end) return t > end
+  return dayIsFull(c, effectiveDay(c, getDay(end), restInfo(c, getDay).map.has(end), end))
+}
+
+// Headline results, used by the celebration and the before & after image.
+export function challengeSummary(c, getDay) {
+  if (c.rewardMode === 'money') {
+    const s = challengeStats(c, getDay)
+    return {
+      headline: `${money(c, s.grand)} earned`,
+      lines: [`${money(c, s.grand)} of ${money(c, s.max)} possible`, `${s.totalQualifying} of ${c.lengthDays} qualifying days`],
+      short: `${money(c, s.grand)} earned · ${s.totalQualifying}/${c.lengthDays} qualifying days`,
+      prizeWon: null,
+    }
+  }
+  const s = streakStats(c, getDay)
+  return {
+    headline: `${s.completed} of ${c.lengthDays} days complete`,
+    lines: [`${s.completed} of ${c.lengthDays} days complete`, `Best streak: ${s.best} day${s.best === 1 ? '' : 's'}`],
+    short: `${s.completed}/${c.lengthDays} days complete · best streak ${s.best}`,
+    prizeWon: s.unlocked ? (c.streak.prize || 'Prize unlocked') : null,
+    prizeMissed: !s.unlocked && c.streak.prize ? c.streak.prize : null,
+  }
+}

@@ -39,6 +39,18 @@ export default function GuideView({ c, onClose }) {
       <RestSection c={c} isMoney={isMoney} />
       <HolidaySection c={c} />
 
+      <Section title="Finishing & before / after photos">
+        <p>
+          When the last day is done (or the end date passes) you get a <b>celebration</b> with your results.
+          You can replay it from {c?.rewardMode === 'streak' ? 'Progress' : 'Totals'}.
+        </p>
+        <p>
+          In <b>{c?.rewardMode === 'streak' ? 'Progress' : 'Totals'}</b>, add <b>front, side and back</b> photos at the
+          start and again at the end. <b>Create before &amp; after images</b> makes one image per view — front, side and back — with
+          before and after side by side; <b>Save all</b> saves them to your photos in one go. Photos never leave this device.
+        </p>
+      </Section>
+
       <Section title="Extras, body & notes">
         <p>
           <b>Extra tracking</b> (under the habits on Today) is for things you want to record — gym day, progress

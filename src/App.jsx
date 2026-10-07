@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import './App.css'
-import { defaultDayIdx } from './challenge'
+import { defaultDayIdx, endDate, isChallengeComplete } from './challenge'
 import { useChallenges } from './useChallenges'
 import { useTrackerData } from './useTrackerData'
+import { usePhotos } from './usePhotos'
 import { useTheme } from './useTheme'
 import Hero from './components/Hero'
 import NavBar from './components/NavBar'
@@ -13,6 +14,8 @@ import BodyView from './components/BodyView'
 import SettingsView, { TemplatePicker, ThemePicker } from './components/SettingsView'
 import ChallengeEditor from './components/ChallengeEditor'
 import GuideView from './components/GuideView'
+import Celebration from './components/Celebration'
+import { celebratedKey } from './useChallenges'
 
 export default function App() {
   const [themePref, setThemePref] = useTheme()
@@ -89,6 +92,32 @@ function ChallengeScreen({ c, tab, setTab, openGuide, closeGuide, settingsProps 
   const [dayIdx, setDayIdx] = useState(() => defaultDayIdx(c))
   const [weekIdx, setWeekIdx] = useState(() => Math.floor(defaultDayIdx(c) / 7))
   const { body, getDay, toggleDayField, setDayNotes, setBodyField, resetAll, saveState } = useTrackerData(c.id)
+  const photos = usePhotos(c.id)
+
+  // Celebrate once per challenge end date (editing the end date re-arms it).
+  const [celebratedFor, setCelebratedFor] = useState(() => {
+    try { return localStorage.getItem(celebratedKey(c.id)) } catch { return null }
+  })
+  const [replay, setReplay] = useState(false)
+  const complete = isChallengeComplete(c, getDay)
+  const showCelebration = replay || (complete && celebratedFor !== endDate(c))
+  const closeCelebration = () => {
+    const end = endDate(c)
+    try { localStorage.setItem(celebratedKey(c.id), end) } catch { /* ignore */ }
+    setCelebratedFor(end)
+    setReplay(false)
+  }
+  const goToPhotos = () => {
+    closeCelebration()
+    setTab('totals')
+    setTimeout(() => document.getElementById('before-after')?.scrollIntoView({ behavior: 'smooth' }), 60)
+  }
+  const resetEverything = () => {
+    resetAll()
+    photos.clearAll()
+    try { localStorage.removeItem(celebratedKey(c.id)) } catch { /* ignore */ }
+    setCelebratedFor(null)
+  }
 
   // The config can change underneath (edited length, body tracking turned off).
   const di = Math.min(dayIdx, c.lengthDays - 1)
@@ -105,11 +134,14 @@ function ChallengeScreen({ c, tab, setTab, openGuide, closeGuide, settingsProps 
                      toggleDayField={toggleDayField} setDayNotes={setDayNotes} />
         )}
         {view === 'week' && <WeekView c={c} weekIdx={wi} setWeekIdx={setWeekIdx} getDay={getDay} />}
-        {view === 'totals' && <TotalsView c={c} getDay={getDay} />}
+        {view === 'totals' && (
+          <TotalsView c={c} getDay={getDay} photos={photos} complete={complete} onCelebrate={() => setReplay(true)} />
+        )}
         {view === 'body' && <BodyView c={c} body={body} setBodyField={setBodyField} />}
-        {view === 'settings' && <SettingsView {...settingsProps} resetAll={resetAll} />}
+        {view === 'settings' && <SettingsView {...settingsProps} resetAll={resetEverything} />}
       </div>
       <NavBar tab={view} setTab={setTab} c={c} />
+      {showCelebration && <Celebration c={c} getDay={getDay} onClose={closeCelebration} onPhotos={goToPhotos} />}
     </div>
   )
 }

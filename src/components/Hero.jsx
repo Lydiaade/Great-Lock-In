@@ -4,7 +4,7 @@ export default function Hero({ c, getDay, saveState, onHelp }) {
   const idx = dayIndex(c, todayISO())
   const paused = pausedToday(c)
   const dayLabel = idx < 0 ? `Starts in ${-idx}d`
-    : idx >= c.lengthDays ? 'Finished'
+    : idx >= c.lengthDays ? 'Complete 🎉'
     : paused ? `🌴 Paused · ${paused.label || 'holiday'}`
     : `Day ${idx + 1} / ${c.lengthDays}`
   const saveLabel = saveState === 'error' ? 'Save failed' : 'Saved'

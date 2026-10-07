@@ -1,7 +1,19 @@
 import { challengeStats, streakStats, endBonusRows, money } from '../challenge'
+import BeforeAfter from './BeforeAfter'
 
-export default function TotalsView({ c, getDay }) {
-  return c.rewardMode === 'money' ? <MoneyTotals c={c} getDay={getDay} /> : <StreakTotals c={c} getDay={getDay} />
+export default function TotalsView({ c, getDay, photos, complete, onCelebrate }) {
+  return (
+    <>
+      {complete && (
+        <div className="gli-donecard">
+          <div><b>🎉 Challenge complete</b><div className="s">Well done for seeing it through.</div></div>
+          <button className="gli-btn" onClick={onCelebrate}>Celebrate again</button>
+        </div>
+      )}
+      {c.rewardMode === 'money' ? <MoneyTotals c={c} getDay={getDay} /> : <StreakTotals c={c} getDay={getDay} />}
+      <BeforeAfter c={c} getDay={getDay} photos={photos} />
+    </>
+  )
 }
 
 function MoneyTotals({ c, getDay }) {

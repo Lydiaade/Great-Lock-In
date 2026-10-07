@@ -18,6 +18,9 @@ Everything about a challenge is configurable from the **Settings** tab:
   whenever you like from the Today screen), and holiday date ranges.
   A rest day counts as a full day: paid in full, qualifying, and it keeps a streak going.
   Holidays pause the challenge — the end date moves back so no challenge days are lost.
+- **Finishing** — a confetti celebration with your results when the challenge completes, and
+  before & after photos (front, side, back at the start and end) turned into one side-by-side
+  image you can save or share. Photos are stored on the device (IndexedDB), never uploaded.
 - **Body tracking** — weekly weigh-in & measurement cards, on or off.
 - **Multiple challenges** — keep several, switch between them, duplicate one as the
   starting point for the next. Each keeps its own data.

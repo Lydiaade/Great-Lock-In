@@ -51,7 +51,7 @@ export default function SettingsView({ challenges, active, setActive, onEdit, on
             {confirm?.id === c.id ? (
               <div className="gli-btnrow">
                 <span className="gli-confirm-text">
-                  {confirm.kind === 'delete' ? 'Delete this challenge and all its data?' : 'Clear all logged days and measurements?'}
+                  {confirm.kind === 'delete' ? 'Delete this challenge and all its data?' : 'Clear all logged days, measurements and photos?'}
                 </span>
                 <button className="gli-btn" onClick={() => setConfirm(null)}>Cancel</button>
                 <button className="gli-btn danger" onClick={() => {

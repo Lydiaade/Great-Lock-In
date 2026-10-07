@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { greatLockInPreset, newId } from './presets'
+import { deleteChallengePhotos } from './photoStore'
 
 const STORE_KEY = 'gli:challenges'
 const LEGACY_DAYS_KEY = 'gli:days'
@@ -8,6 +9,7 @@ const LEGACY_ID = 'great-lock-in-2026'
 
 export const daysKey = (id) => `gli:c:${id}:days`
 export const bodyKey = (id) => `gli:c:${id}:body`
+export const celebratedKey = (id) => `gli:c:${id}:celebrated`
 
 function loadStore() {
   try {
@@ -61,9 +63,11 @@ export function useChallenges() {
     try {
       localStorage.removeItem(daysKey(id))
       localStorage.removeItem(bodyKey(id))
+      localStorage.removeItem(celebratedKey(id))
     } catch (e) {
       console.error(e)
     }
+    deleteChallengePhotos(id).catch(console.error)
     setStore((s) => {
       const challenges = s.challenges.filter((c) => c.id !== id)
       const activeId = s.activeId === id ? (challenges[0]?.id ?? null) : s.activeId
