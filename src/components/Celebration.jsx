@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react'
-import { challengeSummary } from '../challenge'
+import { challengeSummary, bodyChanges } from '../challenge'
 
 const COLORS = ['#3FA772', '#D3A75B', '#6FA3D6', '#EDEAE0', '#D9705F', '#9B7BD6']
 
 // Full-screen confetti + "challenge complete" card.
-export default function Celebration({ c, getDay, onClose, onPhotos }) {
+export default function Celebration({ c, getDay, body, onClose, onPhotos }) {
   const canvasRef = useRef(null)
   const s = challengeSummary(c, getDay)
+  const changes = bodyChanges(c, body)
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
@@ -70,9 +71,47 @@ export default function Celebration({ c, getDay, onClose, onPhotos }) {
         {s.lines.slice(1).map((l) => <div className="line" key={l}>{l}</div>)}
         {s.prizeWon && <div className="prize won">🏆 You&rsquo;ve won: <b>{s.prizeWon}</b></div>}
         {s.prizeMissed && <div className="prize">So close — the prize ({s.prizeMissed}) stayed locked this time, but you made it to the end.</div>}
+        {changes.rows.length > 0 && <BodyChanges changes={changes} />}
         <button className="gli-btn primary block" onClick={onPhotos}>Make my before &amp; after images</button>
         <button className="gli-btn block" onClick={onClose}>Done</button>
       </div>
+    </div>
+  )
+}
+
+const fmtNum = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
+
+function Delta({ diff, unit }) {
+  if (diff === 0) return <span className="delta same">no change</span>
+  return (
+    <span className={'delta ' + (diff < 0 ? 'down' : 'up')}>
+      {diff < 0 ? '↓' : '↑'} {fmtNum(Math.abs(diff))} {unit}
+    </span>
+  )
+}
+
+function BodyChanges({ changes }) {
+  const { rows, totalCm } = changes
+  // Only label the span when every row compares the same two check-ins.
+  const sameSpan = rows.every((r) => r.fromLabel === rows[0].fromLabel && r.toLabel === rows[0].toLabel)
+  const span = sameSpan ? `${rows[0].fromLabel} → ${rows[0].toLabel}` : ''
+  return (
+    <div className="gli-bodychanges">
+      <div className="hd">Body changes <span>{span}</span></div>
+      {rows.map((r) => (
+        <div className="row" key={r.key}>
+          <span className="l">{r.label}</span>
+          <span className="v gli-mono">{fmtNum(r.from)} → {fmtNum(r.to)} {r.unit}</span>
+          <Delta diff={r.diff} unit={r.unit} />
+        </div>
+      ))}
+      {totalCm !== null && (
+        <div className="row total">
+          <span className="l">All measurements</span>
+          <span className="v" />
+          <Delta diff={totalCm} unit="cm" />
+        </div>
+      )}
     </div>
   )
 }

@@ -392,3 +392,18 @@ input[type="number"].gli-input::-webkit-outer-spin-button { -webkit-appearance:n
 @keyframes gli-fade { from { opacity:0 } to { opacity:1 } }
 @keyframes gli-pop { from { transform: scale(.85); opacity:0 } to { transform: scale(1); opacity:1 } }
 @media (prefers-reduced-motion: reduce) { .gli-celebrate, .gli-celebrate .card { animation:none; } }
+
+/* Celebration: body changes */
+.gli-celebrate .card { max-height: calc(100dvh - 48px); overflow-y:auto; }
+.gli-bodychanges { margin-top:14px; text-align:left; background: var(--card-alt); border-radius:12px; padding:10px 12px; }
+.gli-bodychanges .hd { font-weight:700; font-size:13px; margin-bottom:4px; display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+.gli-bodychanges .hd span { font-weight:400; font-size:10.5px; color: var(--ink-faint); }
+.gli-bodychanges .row { display:grid; grid-template-columns: 1fr auto auto; gap:10px; align-items:baseline; font-size:12.5px; padding:4px 0; }
+.gli-bodychanges .row + .row { border-top:1px solid var(--line); }
+.gli-bodychanges .row .l { color: var(--ink-dim); }
+.gli-bodychanges .row .v { font-size:11.5px; color: var(--ink-faint); }
+.gli-bodychanges .row.total .l { color: var(--ink); font-weight:600; }
+.gli-bodychanges .delta { font-weight:700; font-size:12.5px; white-space:nowrap; text-align:right; min-width:64px; }
+.gli-bodychanges .delta.down { color: var(--green); }
+.gli-bodychanges .delta.up { color: var(--gold); }
+.gli-bodychanges .delta.same { color: var(--ink-faint); font-weight:500; }

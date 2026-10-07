@@ -285,6 +285,41 @@ export function bodyCheckpoints(c) {
   ]
 }
 
+export const BODY_FIELDS = [
+  { key: 'weight', label: 'Weight', unit: 'kg' },
+  { key: 'waist', label: 'Waist', unit: 'cm' },
+  { key: 'hips', label: 'Hips', unit: 'cm' },
+  { key: 'chest', label: 'Chest', unit: 'cm' },
+  { key: 'thighs', label: 'Thighs', unit: 'cm' },
+  { key: 'arms', label: 'Arms', unit: 'cm' },
+]
+
+// Body inputs are free text; accept "70.5", "70,5" or "70.5kg".
+function parseMeasure(v) {
+  const n = parseFloat(String(v ?? '').replace(',', '.'))
+  return Number.isFinite(n) ? n : null
+}
+const round1 = (n) => Math.round(n * 10) / 10
+
+// First vs latest recorded value for each body field, e.g. weight 82 → 78.4 (−3.6).
+// Only fields recorded at two different checkpoints are included.
+export function bodyChanges(c, body) {
+  const cps = bodyCheckpoints(c)
+  const rows = BODY_FIELDS.map((f) => {
+    const recorded = cps
+      .map((cp) => ({ cp, value: parseMeasure(body?.[cp.key]?.[f.key]) }))
+      .filter((r) => r.value !== null)
+    if (recorded.length < 2) return null
+    const first = recorded[0], last = recorded[recorded.length - 1]
+    return {
+      ...f, from: first.value, to: last.value, diff: round1(last.value - first.value),
+      fromLabel: first.cp.label, toLabel: last.cp.label,
+    }
+  }).filter(Boolean)
+  const cm = rows.filter((r) => r.unit === 'cm')
+  return { rows, totalCm: cm.length > 1 ? round1(cm.reduce((a, r) => a + r.diff, 0)) : null }
+}
+
 // ---------- Formatting ----------
 export function money(c, n) {
   return (c.currency || '') + n

@@ -141,7 +141,7 @@ function ChallengeScreen({ c, tab, setTab, openGuide, closeGuide, settingsProps 
         {view === 'settings' && <SettingsView {...settingsProps} resetAll={resetEverything} />}
       </div>
       <NavBar tab={view} setTab={setTab} c={c} />
-      {showCelebration && <Celebration c={c} getDay={getDay} onClose={closeCelebration} onPhotos={goToPhotos} />}
+      {showCelebration && <Celebration c={c} getDay={getDay} body={body} onClose={closeCelebration} onPhotos={goToPhotos} />}
     </div>
   )
 }

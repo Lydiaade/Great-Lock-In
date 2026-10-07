@@ -1,6 +1,4 @@
-import { bodyCheckpoints } from '../challenge'
-
-const FIELDS = [['weight', 'kg'], ['waist', 'cm'], ['hips', 'cm'], ['chest', 'cm'], ['thighs', 'cm'], ['arms', 'cm']]
+import { bodyCheckpoints, BODY_FIELDS } from '../challenge'
 
 export default function BodyView({ c, body, setBodyField }) {
   return (
@@ -12,9 +10,9 @@ export default function BodyView({ c, body, setBodyField }) {
           <div className="gli-bodycard" key={cp.key}>
             <div className="hd">{cp.label} <span style={{ color: 'var(--ink-faint)', fontWeight: 400 }}>· {cp.date}</span></div>
             <div className="gli-fieldgrid">
-              {FIELDS.map(([field, unit]) => (
+              {BODY_FIELDS.map(({ key: field, label, unit }) => (
                 <div className="gli-field" key={field}>
-                  <label>{field.charAt(0).toUpperCase() + field.slice(1)} ({unit})</label>
+                  <label>{label} ({unit})</label>
                   <input type="text" inputMode="decimal" value={b[field] || ''}
                          onChange={(e) => setBodyField(cp.key, field, e.target.value)} />
                 </div>
