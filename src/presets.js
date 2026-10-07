@@ -85,7 +85,63 @@ export function blankPreset() {
   }
 }
 
+// ---------- 75-day challenges ----------
+// 75 Hard follows the official rules: every task, every day, no rest days — a single
+// miss means starting again (here: the prize needs all 75 days). 75 Medium and 75 Soft
+// are popular community variations; there's no official version, so these use the most
+// common rules. All are fully editable after picking.
+function seventyFive({ name, habits, restDays, bodyTracking = false }) {
+  return {
+    name,
+    startDate: todayISO(),
+    lengthDays: 75,
+    rewardMode: 'streak',
+    currency: '£',
+    groups: [
+      { id: newId('g'), name: 'Daily tasks', value: 5, habits: habits.map(([label, sub]) => ({ id: newId('h'), label, sub })) },
+    ],
+    extras: [],
+    weeklyBonus: { enabled: false, gateGroupId: '', tiers: [{ minDays: 7, amount: 10 }] },
+    endBonus: { enabled: false, tiers: [{ minDays: 75, amount: 100 }] },
+    streak: { targetDays: 75, prize: '' },
+    restDays: { flexTotal: restDays, holidays: [] },
+    bodyTracking,
+  }
+}
+
+export function seventyFiveHardPreset() {
+  return seventyFive({
+    name: '75 Hard',
+    restDays: 0,
+    bodyTracking: true,
+    habits: [
+      ['Follow a diet', 'Your chosen plan — no cheat meals, no alcohol'],
+      ['Workout 1', '45 minutes'],
+      ['Workout 2 — outdoors', '45 minutes, must be outside'],
+      ['Drink 1 gallon of water', '3.8 litres'],
+      ['Read 10 pages', 'Non-fiction / self-development book'],
+      ['Progress photo', 'Take one every day'],
+    ],
+  })
+}
+
+export function seventyFiveMediumPreset() {
+  return seventyFive({
+    name: '75 Medium',
+    restDays: 10,
+    habits: [
+      ['Follow a healthy diet', 'No cheat meals — alcohol only on social occasions'],
+      ['Workout', '45 minutes'],
+      ['Drink 3 litres of water', ''],
+      ['Read 10 pages', 'Non-fiction / self-development book'],
+      ['Mindfulness', '10 minutes — meditate, journal or breathwork'],
+    ],
+  })
+}
+
 export const TEMPLATES = [
   { key: 'blank', label: 'Blank challenge', desc: 'Start from scratch with your own habits', make: blankPreset },
   { key: 'gli', label: 'The Great Lock In', desc: 'The 4-week fitness challenge with £ rewards', make: () => ({ ...greatLockInPreset(), startDate: todayISO() }) },
+  { key: '75hard', label: '75 Hard', desc: '75 days · 6 daily tasks incl. two workouts · no rest days, miss one and you start again', make: seventyFiveHardPreset },
+  { key: '75medium', label: '75 Medium', desc: '75 days · 5 daily tasks incl. mindfulness · 10 rest days', make: seventyFiveMediumPreset },
 ]
